@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: lifeflow_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: lifeflow_root_pass
+      MYSQL_DATABASE: lifeflow
+      MYSQL_USER: lifeflow_user
+      MYSQL_PASSWORD: lifeflow_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-plifeflow_root_pass"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+volumes:
+  mysql_data:
+    driver: local
