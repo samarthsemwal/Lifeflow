@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}Register — LifeFlow{% endblock %}
+
+{% block content %}
+<div style="max-width: 520px; margin: 2rem auto;">
+  <div class="card">
+    <div class="card-header" style="justify-content: center; text-align: center;">
+      <div>
+        <h2 class="card-title" style="font-size: 1.4rem;">Create your LifeFlow Account</h2>
+        <p class="form-text">Join as a voluntary donor or authorized requester</p>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.register') }}">
+      <div class="form-group">
+        <label for="name" class="form-label">Full Name</label>
+        <input type="text" class="form-control" id="name" name="name" required placeholder="e.g. Dr. Jane Smith or John Doe">
+      </div>
+
+      <div class="form-group">
+        <label for="email" class="form-label">Email Address</label>
+        <input type="email" class="form-control" id="email" name="email" required placeholder="name@domain.com">
+      </div>
+
+      <div class="form-group">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" class="form-control" id="password" name="password" minlength="6" required placeholder="Minimum 6 characters">
+      </div>
+
+      <div class="form-group">
+        <label for="role-select" class="form-label">Account Role</label>
+        <select class="form-control" id="role-select" name="role" required>
+          <option value="" disabled selected>-- Select your role --</option>
+          <option value="donor">Voluntary Blood Donor</option>
+          <option value="requester">Blood Requester (Hospital / Patient)</option>
+        </select>
+      </div>
+
+      <!-- Donor Specific Fields -->
+      <div id="donor-specific-fields" style="display: none; background: var(--surface-alt); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
+        <h4 style="font-size: 0.9rem; margin-bottom: 0.75rem; color: var(--primary);">Donor Details</h4>
+        
+        <div class="form-group">
+          <label for="blood_type" class="form-label">Blood Type</label>
+          <select class="form-control" id="blood_type" name="blood_type">
+            <option value="" disabled selected>-- Select Blood Type --</option>
+            {% for bt in blood_types %}
+              <option value="{{ bt }}">{{ bt }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="date_of_birth" class="form-label">Date of Birth</label>
+          <input type="date" class="form-control" id="date_of_birth" name="date_of_birth">
+          <span class="form-text">Must be at least 18 years old to donate blood.</span>
+        </div>
+      </div>
+
+      <!-- Requester Specific Fields -->
+      <div id="requester-specific-fields" style="display: none; background: var(--surface-alt); padding: 1rem; border-radius: var(--radius-sm); margin-bottom: 1.25rem;">
+        <h4 style="font-size: 0.9rem; margin-bottom: 0.75rem; color: var(--urgent);">Organization / Requester Details</h4>
+        
+        <div class="form-group">
+          <label for="organization_name" class="form-label">Hospital / Organization Name</label>
+          <input type="text" class="form-control" id="organization_name" name="organization_name" placeholder="e.g. City General Hospital or Self">
+        </div>
+
+        <div class="form-group">
+          <label for="contact_phone" class="form-label">Contact Phone Number</label>
+          <input type="tel" class="form-control" id="contact_phone" name="contact_phone" placeholder="+1 (555) 000-0000">
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">Complete Registration</button>
+    </form>
+
+    <div style="margin-top: 1.25rem; text-align: center; font-size: 0.875rem; color: var(--text-muted);">
+      Already registered? <a href="{{ url_for('auth.login') }}" style="color: var(--primary); font-weight: 600;">Sign in</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
