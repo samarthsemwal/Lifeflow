@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block title %}Server Error — LifeFlow{% endblock %}
+
+{% block content %}
+<div style="text-align: center; max-width: 480px; margin: 4rem auto;">
+  <div style="font-size: 4rem; font-weight: 800; color: var(--critical);">500</div>
+  <h2 style="font-size: 1.5rem; margin-bottom: 0.75rem;">Internal Server Error</h2>
+  <p style="color: var(--text-muted); margin-bottom: 1.5rem;">An unexpected database or server error occurred. Any ongoing transaction was rolled back safely.</p>
+  <a href="{{ url_for('inventory.live_view') }}" class="btn btn-primary">Return to Live Inventory</a>
+</div>
+{% endblock %}
