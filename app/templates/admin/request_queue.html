@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Prioritized Request Queue — LifeFlow{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 style="font-size: 1.8rem; font-weight: 700;">Prioritized Request Queue</h1>
+    <p style="color: var(--text-muted);">
+      Server-enforced ranking: <strong>Critical &gt; Urgent &gt; Routine</strong>, with <code>requested_at ASC</code> (FIFO) tiebreaker.
+    </p>
+  </div>
+
+  <div style="display: flex; gap: 0.5rem;">
+    <a href="{{ url_for('admin.queue', status='pending') }}" class="btn btn-sm {% if current_status == 'pending' %}btn-primary{% else %}btn-outline{% endif %}">Pending Queue</a>
+    <a href="{{ url_for('admin.queue', status='approved') }}" class="btn btn-sm {% if current_status == 'approved' %}btn-primary{% else %}btn-outline{% endif %}">Approved</a>
+    <a href="{{ url_for('admin.queue', status='rejected') }}" class="btn btn-sm {% if current_status == 'rejected' %}btn-primary{% else %}btn-outline{% endif %}">Rejected</a>
+    <a href="{{ url_for('admin.queue', status='all') }}" class="btn btn-sm {% if current_status == 'all' %}btn-primary{% else %}btn-outline{% endif %}">All</a>
+  </div>
+</div>
+
+<div class="card">
+  {% if requests %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Priority Rank</th>
+            <th>ID</th>
+            <th>Requester / Hospital</th>
+            <th>Contact Phone</th>
+            <th>Blood Type</th>
+            <th>Units Needed</th>
+            <th>Urgency</th>
+            <th>Status</th>
+            <th>Requested At</th>
+            <th style="text-align: right;">Decision</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in requests %}
+            <tr>
+              <td>
+                {% if r.status == 'pending' %}
+                  <strong style="font-size: 1.05rem; color: {% if r.urgency == 'critical' %}var(--critical){% elif r.urgency == 'urgent' %}var(--urgent){% else %}var(--text-main){% endif %};">
+                    #{{ loop.index }}
+                  </strong>
+                {% else %}
+                  <span style="color: var(--text-muted);">-</span>
+                {% endif %}
+              </td>
+              <td>#{{ r.id }}</td>
+              <td><strong>{{ r.requester.organization_name }}</strong></td>
+              <td>{{ r.requester.contact_phone }}</td>
+              <td><span class="badge" style="background: var(--primary-light); color: var(--primary); font-size: 0.85rem;">{{ r.blood_type_requested }}</span></td>
+              <td><strong>{{ r.units_requested }}</strong></td>
+              <td><span class="badge badge-{{ r.urgency }}">{{ r.urgency }}</span></td>
+              <td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
+              <td>{{ r.requested_at.strftime('%b %d, %Y %I:%M %p') }}</td>
+              <td style="text-align: right;">
+                {% if r.status == 'pending' %}
+                  <div style="display: flex; gap: 0.35rem; justify-content: flex-end;">
+                    <form method="POST" action="{{ url_for('admin.approve_request_action', request_id=r.id) }}" style="display: inline;">
+                      <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Approve request #{{ r.id }}? Units will be allocated inside an atomic row-locked transaction.');">
+                        Approve
+                      </button>
+                    </form>
+
+                    <!-- Quick Reject with Form -->
+                    <form method="POST" action="{{ url_for('admin.reject_request_action', request_id=r.id) }}" style="display: inline;">
+                      <input type="hidden" name="reason" value="Inventory constraint / Unfulfillable">
+                      <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Reject request #{{ r.id }}?');">
+                        Reject
+                      </button>
+                    </form>
+                  </div>
+                {% elif r.status == 'approved' %}
+                  <span style="color: var(--routine); font-weight: 600; font-size: 0.85rem;">
+                    Allocated: {% for f in r.fulfillments %}#{{ f.unit_id }}{% if not loop.last %}, {% endif %}{% endfor %}
+                  </span>
+                {% elif r.status == 'rejected' %}
+                  <span style="color: var(--critical); font-size: 0.8rem;">
+                    {{ r.rejection_reason or 'Rejected' }}
+                  </span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 2.5rem;">
+      <p style="color: var(--text-muted); font-size: 1rem;">No blood requests match this filter.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

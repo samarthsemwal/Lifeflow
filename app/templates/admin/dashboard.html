@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard — LifeFlow{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 style="font-size: 1.8rem; font-weight: 700;">Blood Bank Administration</h1>
+    <p style="color: var(--text-muted);">Real aggregate counts computed directly from the MySQL database.</p>
+  </div>
+
+  <div style="display: flex; gap: 0.5rem;">
+    <a href="{{ url_for('admin.queue') }}" class="btn btn-primary">Review Prioritized Queue</a>
+    <a href="{{ url_for('admin.units_list') }}" class="btn btn-outline">Inspect Units</a>
+  </div>
+</div>
+
+<!-- Aggregated Metrics -->
+<div class="metrics-grid">
+  <div class="metric-card">
+    <span class="metric-label">Pending Requests</span>
+    <span class="metric-value" style="color: {% if metrics.pending_requests > 0 %}var(--urgent){% else %}var(--routine){% endif %};">
+      {{ metrics.pending_requests }}
+    </span>
+    <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">
+      <strong style="color: var(--critical);">{{ metrics.critical_requests }} Critical</strong> in queue
+    </span>
+  </div>
+
+  <div class="metric-card">
+    <span class="metric-label">Available Units</span>
+    <span class="metric-value" style="color: var(--primary);">{{ metrics.total_available_units }}</span>
+    <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">
+      {{ metrics.low_stock_count }} group(s) low on stock
+    </span>
+  </div>
+
+  <div class="metric-card">
+    <span class="metric-label">Fulfilled Requests</span>
+    <span class="metric-value" style="color: var(--routine);">{{ metrics.fulfilled_requests }}</span>
+    <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">
+      Total approved & fulfilled
+    </span>
+  </div>
+
+  <div class="metric-card">
+    <span class="metric-label">Registered Donors</span>
+    <span class="metric-value">{{ metrics.total_donors }}</span>
+    <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">
+      {{ metrics.total_donations }} donation sessions logged
+    </span>
+  </div>
+</div>
+
+<!-- Low Stock Alert Banner -->
+{% if low_stock_types %}
+  <div class="alert alert-warning" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+    <div>
+      <strong>⚠️ Low Stock Warning (&lt; 3 units available):</strong>
+      <span> Blood groups: <strong>{{ low_stock_types|join(', ') }}</strong> require urgent donor intake.</span>
+    </div>
+    <a href="{{ url_for('inventory.live_view') }}" class="btn btn-sm btn-outline">Check Stock</a>
+  </div>
+{% endif %}
+
+<!-- Pending Requests Priority Preview -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h2 class="card-title">Pending Requests (Priority Queue Preview)</h2>
+      <p class="form-text">Sorted by Urgency (Critical &gt; Urgent &gt; Routine), then oldest requested_at</p>
+    </div>
+    <a href="{{ url_for('admin.queue') }}" class="btn btn-outline btn-sm">Open Full Queue</a>
+  </div>
+
+  {% if pending_queue %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Priority</th>
+            <th>Request ID</th>
+            <th>Requester</th>
+            <th>Type</th>
+            <th>Units</th>
+            <th>Urgency</th>
+            <th>Requested At</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in pending_queue %}
+            <tr>
+              <td><strong>#{{ loop.index }}</strong></td>
+              <td>#{{ r.id }}</td>
+              <td>{{ r.requester.organization_name }}</td>
+              <td><span class="badge" style="background: var(--primary-light); color: var(--primary);">{{ r.blood_type_requested }}</span></td>
+              <td><strong>{{ r.units_requested }}</strong></td>
+              <td><span class="badge badge-{{ r.urgency }}">{{ r.urgency }}</span></td>
+              <td>{{ r.requested_at.strftime('%b %d, %I:%M %p') }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('admin.approve_request_action', request_id=r.id) }}" style="display: inline;">
+                  <button type="submit" class="btn btn-sm btn-success" onclick="return confirm('Approve request #{{ r.id }} and allocate compatible units?');">
+                    Approve
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p style="color: var(--text-muted); text-align: center; padding: 2rem;">
+      Queue is clear! No blood requests currently pending review.
+    </p>
+  {% endif %}
+</div>
+{% endblock %}

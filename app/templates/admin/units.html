@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory Unit Inspection — LifeFlow{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 style="font-size: 1.8rem; font-weight: 700;">Blood Unit Inventory Detail</h1>
+    <p style="color: var(--text-muted);">Physical blood units tracked with 42-day shelf-life enforcement.</p>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card" style="padding: 1rem;">
+  <form method="GET" action="{{ url_for('admin.units_list') }}" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+    <div style="flex: 1; min-width: 160px;">
+      <label class="form-label" style="font-size: 0.8rem;">Filter by Blood Group</label>
+      <select name="blood_type" class="form-control" style="padding: 0.45rem 0.65rem;">
+        <option value="">All Blood Types</option>
+        {% for bt in blood_types %}
+          <option value="{{ bt }}" {% if selected_type == bt %}selected{% endif %}>{{ bt }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="flex: 1; min-width: 160px;">
+      <label class="form-label" style="font-size: 0.8rem;">Filter by Status</label>
+      <select name="status" class="form-control" style="padding: 0.45rem 0.65rem;">
+        <option value="">All Statuses</option>
+        <option value="available" {% if selected_status == 'available' %}selected{% endif %}>Available</option>
+        <option value="used" {% if selected_status == 'used' %}selected{% endif %}>Used / Fulfilled</option>
+        <option value="reserved" {% if selected_status == 'reserved' %}selected{% endif %}>Reserved</option>
+        <option value="expired" {% if selected_status == 'expired' %}selected{% endif %}>Expired</option>
+      </select>
+    </div>
+
+    <div>
+      <button type="submit" class="btn btn-primary btn-sm" style="padding: 0.55rem 1rem;">Apply Filter</button>
+      <a href="{{ url_for('admin.units_list') }}" class="btn btn-outline btn-sm">Reset</a>
+    </div>
+  </form>
+</div>
+
+<!-- Units Table -->
+<div class="card">
+  {% if units %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Unit ID</th>
+            <th>Blood Type</th>
+            <th>Status</th>
+            <th>Collected Date</th>
+            <th>Expiration Date</th>
+            <th>Shelf Life Status</th>
+            <th>Donation Reference</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in units %}
+            <tr>
+              <td><strong>#{{ u.id }}</strong></td>
+              <td><span class="badge" style="background: var(--primary-light); color: var(--primary); font-size: 0.85rem;">{{ u.blood_type }}</span></td>
+              <td>
+                {% if u.status == 'available' %}
+                  <span class="badge badge-routine">Available</span>
+                {% elif u.status == 'used' %}
+                  <span class="badge badge-approved">Used</span>
+                {% elif u.status == 'expired' %}
+                  <span class="badge badge-critical">Expired</span>
+                {% else %}
+                  <span class="badge badge-urgent">{{ u.status }}</span>
+                {% endif %}
+              </td>
+              <td>{{ u.collected_at[:10] if u.collected_at else '-' }}</td>
+              <td>{{ u.expires_at[:10] if u.expires_at else '-' }}</td>
+              <td>
+                {% if u.is_expired %}
+                  <span style="color: var(--critical); font-weight: 600;">Expired</span>
+                {% elif u.days_until_expiry <= 7 %}
+                  <span style="color: var(--urgent); font-weight: 600;">Expiring in {{ u.days_until_expiry }} days</span>
+                {% else %}
+                  <span style="color: var(--routine);">Viable ({{ u.days_until_expiry }} days left)</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.donation_id %}
+                  Donation #{{ u.donation_id }}
+                {% else %}
+                  <span style="color: var(--text-muted);">-</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p style="color: var(--text-muted); text-align: center; padding: 2.5rem;">
+      No blood units found matching the selected filter criteria.
+    </p>
+  {% endif %}
+</div>
+{% endblock %}
