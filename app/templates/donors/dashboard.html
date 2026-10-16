@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Donor Portal — LifeFlow{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+  <h1 style="font-size: 1.8rem; font-weight: 700;">Welcome, {{ current_user.name }}</h1>
+  <p style="color: var(--text-muted);">Manage your blood donation records and track eligibility status.</p>
+</div>
+
+<!-- Profile & Eligibility Metrics -->
+<div class="metrics-grid">
+  <div class="metric-card">
+    <span class="metric-label">Registered Blood Type</span>
+    <span class="metric-value" style="color: var(--primary);">{{ donor.blood_type }}</span>
+    <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">Verified Donor Profile</span>
+  </div>
+
+  <div class="metric-card">
+    <span class="metric-label">Current Age</span>
+    <span class="metric-value">{{ donor.age }} <span style="font-size: 1rem; font-weight: 500; color: var(--text-muted);">years</span></span>
+    <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">DOB: {{ donor.date_of_birth.strftime('%b %d, %Y') }}</span>
+  </div>
+
+  <div class="metric-card">
+    <span class="metric-label">Last Donation</span>
+    <span class="metric-value" style="font-size: 1.3rem; margin-top: 0.3rem;">
+      {% if donor.last_donation_date %}
+        {{ donor.last_donation_date.strftime('%b %d, %Y') }}
+      {% else %}
+        Never
+      {% endif %}
+    </span>
+    <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">
+      {% if eligibility_meta.get('days_since_last') is not none %}
+        {{ eligibility_meta.days_since_last }} days ago
+      {% else %}
+        First-time donor
+      {% endif %}
+    </span>
+  </div>
+
+  <div class="metric-card" style="border-left: 4px solid {% if is_eligible %}var(--routine){% else %}var(--critical){% endif %};">
+    <span class="metric-label">Eligibility Status</span>
+    <span class="metric-value" style="font-size: 1.3rem; margin-top: 0.3rem; color: {% if is_eligible %}var(--routine){% else %}var(--critical){% endif %};">
+      {% if is_eligible %}Eligible to Donate{% else %}Not Eligible{% endif %}
+    </span>
+    <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">
+      {% if is_eligible %}
+        Meets age & 90-day interval
+      {% else %}
+        Next: {{ eligibility_meta.get('formatted_next_eligible_date', 'See rules') }}
+      {% endif %}
+    </span>
+  </div>
+</div>
+
+<!-- Eligibility Card Banner -->
+<div class="card" style="background: {% if is_eligible %}#f0fdf4{% else %}#fff5f5{% endif %}; border-color: {% if is_eligible %}#a7f3d0{% else %}#fecaca{% endif %};">
+  <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: {% if is_eligible %}#065f46{% else %}#991b1b{% endif %};">
+        {% if is_eligible %}
+          ✓ You are currently eligible to donate blood!
+        {% else %}
+          ⏳ 90-Day Donation Interval Rule Active
+        {% endif %}
+      </h3>
+      <p style="font-size: 0.9rem; color: var(--text-main); margin-top: 0.25rem;">
+        {{ eligibility_msg }}
+      </p>
+    </div>
+
+    <div>
+      {% if is_eligible %}
+        <a href="{{ url_for('donors.donate') }}" class="btn btn-primary">Record New Donation</a>
+      {% else %}
+        <button class="btn btn-outline" disabled style="opacity: 0.6; cursor: not-allowed;">Donation Locked</button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Recent Donations Table -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">My Recent Donations</h3>
+    <a href="{{ url_for('donors.history') }}" class="btn btn-outline btn-sm">View All History</a>
+  </div>
+
+  {% if recent_donations %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Donation ID</th>
+            <th>Date & Time</th>
+            <th>Blood Type</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in recent_donations %}
+            <tr>
+              <td>#{{ d.id }}</td>
+              <td>{{ d.donated_at.strftime('%B %d, %Y at %I:%M %p') }}</td>
+              <td><span class="badge" style="background: var(--primary-light); color: var(--primary);">{{ donor.blood_type }}</span></td>
+              <td>{{ d.notes or 'Routine voluntary donation' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 1.5rem;">
+      No donations recorded yet. When you are eligible, click "Record New Donation" above!
+    </p>
+  {% endif %}
+</div>
+{% endblock %}

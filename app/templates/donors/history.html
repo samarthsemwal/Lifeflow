@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Donation History — LifeFlow{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 style="font-size: 1.8rem; font-weight: 700;">My Blood Donation History</h1>
+    <p style="color: var(--text-muted);">Complete record of all donations recorded for {{ current_user.name }}.</p>
+  </div>
+
+  <div>
+    <a href="{{ url_for('donors.donate') }}" class="btn btn-primary">+ Record Donation</a>
+  </div>
+</div>
+
+<div class="card">
+  {% if donations %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Donation ID</th>
+            <th>Collection Timestamp</th>
+            <th>Blood Type</th>
+            <th>Generated Unit ID</th>
+            <th>Clinical Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in donations %}
+            <tr>
+              <td><strong>#{{ d.id }}</strong></td>
+              <td>{{ d.donated_at.strftime('%B %d, %Y at %I:%M %p') }}</td>
+              <td><span class="badge" style="background: var(--primary-light); color: var(--primary);">{{ donor.blood_type }}</span></td>
+              <td>
+                {% if d.unit_id %}
+                  <code>Unit #{{ d.unit_id }}</code>
+                {% else %}
+                  <span style="color: var(--text-muted);">None</span>
+                {% endif %}
+              </td>
+              <td>{{ d.notes or 'Routine donation' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 2.5rem;">
+      <p style="color: var(--text-muted); font-size: 1rem;">You do not have any recorded donations in the database yet.</p>
+      <a href="{{ url_for('donors.donate') }}" class="btn btn-outline" style="margin-top: 1rem;">Make your first donation</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
