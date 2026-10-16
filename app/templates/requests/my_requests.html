@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}My Blood Requests — LifeFlow{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 style="font-size: 1.8rem; font-weight: 700;">My Blood Requests</h1>
+    <p style="color: var(--text-muted);">Tracking status for <strong>{{ requester.organization_name }}</strong> (Contact: {{ requester.contact_phone }})</p>
+  </div>
+
+  <div>
+    <a href="{{ url_for('requests.new_request') }}" class="btn btn-primary">+ Submit Request</a>
+  </div>
+</div>
+
+<div class="card">
+  {% if requests %}
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Request ID</th>
+            <th>Blood Type</th>
+            <th>Quantity</th>
+            <th>Urgency</th>
+            <th>Status</th>
+            <th>Submitted At</th>
+            <th>Resolution / Allocated Units</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in requests %}
+            <tr>
+              <td><strong>#{{ r.id }}</strong></td>
+              <td><span class="badge" style="background: var(--primary-light); color: var(--primary);">{{ r.blood_type_requested }}</span></td>
+              <td><strong>{{ r.units_requested }}</strong> unit(s)</td>
+              <td><span class="badge badge-{{ r.urgency }}">{{ r.urgency }}</span></td>
+              <td><span class="badge badge-{{ r.status }}">{{ r.status }}</span></td>
+              <td>{{ r.requested_at.strftime('%b %d, %Y %I:%M %p') }}</td>
+              <td>
+                {% if r.status == 'approved' or r.status == 'fulfilled' %}
+                  <span style="color: var(--routine); font-weight: 600;">✓ Approved</span>
+                  {% if r.fulfillments %}
+                    <br><small style="color: var(--text-muted);">Allocated Units: {% for f in r.fulfillments %}#{{ f.unit_id }} ({{ f.unit.blood_type }}){% if not loop.last %}, {% endif %}{% endfor %}</small>
+                  {% endif %}
+                {% elif r.status == 'rejected' %}
+                  <span style="color: var(--critical); font-weight: 600;">✕ Rejected</span>
+                  <br><small style="color: var(--text-muted);">Reason: {{ r.rejection_reason or 'Inventory constraint' }}</small>
+                {% else %}
+                  <span style="color: var(--urgent); font-weight: 500;">⏳ In Queue for Review</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 2.5rem;">
+      <p style="color: var(--text-muted); font-size: 1rem;">No blood requests submitted yet.</p>
+      <a href="{{ url_for('requests.new_request') }}" class="btn btn-outline" style="margin-top: 1rem;">Submit a blood request now</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
