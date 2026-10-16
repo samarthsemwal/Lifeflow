@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block title %}Real-Time Blood Inventory — LifeFlow{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h1 style="font-size: 1.8rem; font-weight: 700;">Live Blood Bank Inventory</h1>
+    <p style="color: var(--text-muted);">
+      Near-real-time inventory tracker updated via short-interval client-side polling.
+    </p>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: var(--text-muted); background: var(--surface); padding: 0.4rem 0.8rem; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+      <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: flash-highlight 1.5s infinite;"></span>
+      <span>Auto-refreshing (10s)</span>
+      <span style="opacity: 0.4;">|</span>
+      <span>Last sync: <strong id="last-updated-time">just now</strong></span>
+    </div>
+
+    <button id="manual-refresh-btn" class="btn btn-outline btn-sm" title="Refresh Now">
+      ↻ Refresh
+    </button>
+  </div>
+</div>
+
+<!-- Overview Stats -->
+<div class="metrics-grid">
+  <div class="metric-card">
+    <span class="metric-label">Total Usable Blood Units</span>
+    <span class="metric-value" id="total-units-count" style="color: var(--primary);">{{ summary.total_units }}</span>
+    <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">Viable & Available in Storage</span>
+  </div>
+
+  <div class="metric-card">
+    <span class="metric-label">Expiring Soon (≤ 7 Days)</span>
+    <span class="metric-value" style="color: {% if summary.expiring_soon_count > 0 %}var(--urgent){% else %}var(--text-main){% endif %};">
+      {{ summary.expiring_soon_count }}
+    </span>
+    <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">Priority for allocation (FEFO)</span>
+  </div>
+
+  <div class="metric-card">
+    <span class="metric-label">Low Stock Blood Types</span>
+    <span class="metric-value" style="color: {% if summary.low_stock_count > 0 %}var(--critical){% else %}var(--routine){% endif %};">
+      {{ summary.low_stock_count }}
+    </span>
+    <span style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">
+      {% if summary.low_stock_types %}
+        Need: {{ summary.low_stock_types|join(', ') }}
+      {% else %}
+        All stocks adequate (≥ 3 units)
+      {% endif %}
+    </span>
+  </div>
+</div>
+
+<!-- 8 Blood Types Live Grid -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Available Units by Blood Group</h2>
+    <span style="font-size: 0.8rem; color: var(--text-muted);">Threshold: &lt; 3 units = Low Stock</span>
+  </div>
+
+  <div class="inventory-grid" id="inventory-grid">
+    {% for b_type, item in inventory.items() %}
+      {% set safe_id = b_type.replace('+', 'pos').replace('-', 'neg') %}
+      <div class="blood-card {{ item.status }}" id="blood-card-{{ safe_id }}">
+        <div class="blood-type-tag">{{ b_type }}</div>
+        <div class="blood-count" id="count-{{ safe_id }}">{{ item.count }}</div>
+        <div class="blood-units-label">units available</div>
+        
+        <div style="margin-top: 0.6rem;">
+          {% if item.status == 'critical' %}
+            <span class="badge badge-critical" style="font-size: 0.65rem;">Depleted (0)</span>
+          {% elif item.status == 'low' %}
+            <span class="badge badge-urgent" style="font-size: 0.65rem;">Low Stock</span>
+          {% else %}
+            <span class="badge badge-routine" style="font-size: 0.65rem;">Adequate</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Compatibility Guidance Matrix -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">ABO & Rh Transfusion Compatibility Matrix</h3>
+    <span style="font-size: 0.8rem; color: var(--text-muted);">Enforced server-side during request fulfillment</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table" style="font-size: 0.85rem;">
+      <thead>
+        <tr>
+          <th>Recipient Group</th>
+          <th>Can Receive RBCs From (Compatible Donors)</th>
+          <th>Transfusion Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>O-</strong></td><td><span class="badge" style="background: var(--surface-alt);">O-</span></td><td>Universal red cell donor; can only receive O-</td></tr>
+        <tr><td><strong>O+</strong></td><td><span class="badge" style="background: var(--surface-alt);">O-, O+</span></td><td>Can receive any O blood</td></tr>
+        <tr><td><strong>A-</strong></td><td><span class="badge" style="background: var(--surface-alt);">O-, A-</span></td><td>Can receive A- and O-</td></tr>
+        <tr><td><strong>A+</strong></td><td><span class="badge" style="background: var(--surface-alt);">O-, O+, A-, A+</span></td><td>Can receive A and O groups</td></tr>
+        <tr><td><strong>B-</strong></td><td><span class="badge" style="background: var(--surface-alt);">O-, B-</span></td><td>Can receive B- and O-</td></tr>
+        <tr><td><strong>B+</strong></td><td><span class="badge" style="background: var(--surface-alt);">O-, O+, B-, B+</span></td><td>Can receive B and O groups</td></tr>
+        <tr><td><strong>AB-</strong></td><td><span class="badge" style="background: var(--surface-alt);">O-, A-, B-, AB-</span></td><td>Can receive any Rh-negative blood</td></tr>
+        <tr><td><strong>AB+</strong></td><td><span class="badge" style="background: #d1fae5; color: #065f46;">All 8 Types</span></td><td>Universal Recipient</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/inventory.js') }}"></script>
+{% endblock %}
